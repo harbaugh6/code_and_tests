@@ -18,8 +18,8 @@ const test = base.extend<{ homepage: Homepage }>({
 test('should log into the CAN site', async ({page, homepage}) => {
     await homepage.signIn();
     await page.getByPlaceholder('Email address').click();
-    await page.getByPlaceholder('Email address').fill(String);
-    await page.getByPlaceholder('Password').fill(String);
+    await page.getByPlaceholder('Email address').fill("email string");
+    await page.getByPlaceholder('Password').fill("password string");
     await page.getByRole('button', { name: 'Sign in with LeagueApps' }).click();
 })
 

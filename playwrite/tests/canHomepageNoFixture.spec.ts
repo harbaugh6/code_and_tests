@@ -13,8 +13,8 @@ test.describe('CAN Homepage tests', () => {
         await expect(page).toHaveTitle(/Capitol Alumni Network/);
         await homepage.signIn();
         await page.getByPlaceholder('Email address').click();
-        await page.getByPlaceholder('Email address').fill(String);
-        await page.getByPlaceholder('Password').fill(String);
+        await page.getByPlaceholder('Email address').fill("email string");
+        await page.getByPlaceholder('Password').fill("password string");
         await page.getByRole('button', { name: 'Sign in with LeagueApps' }).click();
         await expect(page.getByText('Welcome back, Kyle')).toBeVisible();
     })
