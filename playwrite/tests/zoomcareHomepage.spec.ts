@@ -11,5 +11,14 @@ test.describe('Go to Zoomcare homepage', () => {
     test('should go to the Zoomcare QA Homepage', async ({page}) => {
         await page.goto('/')
         await homepage.waitForTopNavElements();
+    });
+
+    test('clicking the Schedule link should take the user to the Schedule page', async ({page}) => {
+        await page.goto('/')
+        await homepage.scheduleCTA.click()
+    })
+
+    test('filling out the Quick Scheduler should take the user to the correct Schedule page', async ({page}) => {
+        //
     })
 })

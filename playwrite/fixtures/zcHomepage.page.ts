@@ -1,5 +1,4 @@
-import type { Page, Locator } from '@playwright/test'
-import {expect} from '@playwright/test'
+import {expect, type Page, type Locator} from '@playwright/test'
 
 export class zcHomepage {
     public readonly zoomcareLogo: Locator;
@@ -8,6 +7,7 @@ export class zcHomepage {
     public readonly servicesButton: Locator;
     public readonly pricingButton: Locator;
     public readonly loginButton: Locator;
+    public readonly scheduleCTA: Locator;
 
     // constructor starts here
     constructor(public readonly page: Page) {
@@ -17,6 +17,7 @@ export class zcHomepage {
         this.servicesButton = this.page.getByRole('link', {name: 'Services'});
         this.pricingButton = this.page.getByRole('link', {name: 'Pricing & Insurance'});
         this.loginButton = this.page.getByRole('link', {name: 'Login'});
+        this.scheduleCTA = this.page.getByRole('link', {name: 'Schedule a Visit'});
     }
 
     async waitForTopNavElements() {
