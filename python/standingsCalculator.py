@@ -1,6 +1,6 @@
 # The intent of this calculator is to have a custom built solution for Capitol Alumni Network's sports standing page(s).  At this time their standings page
 # does not take into account division standings, leading to a tedious process of manually keeping track of these games.  This calculator, in conjunction with
-# the eventual front-end page, will ease that burden.
+# the eventual front-end page, will ease that burden.  This feature will be integrated into a future version of that website.
 
 class StandingsCalculator(object):
     wins = 0

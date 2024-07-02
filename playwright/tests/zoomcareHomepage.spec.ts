@@ -1,3 +1,5 @@
+// This test file is to be used to demonstrate an understanding of Playwright and it's abilities.
+
 import { test, expect } from '@playwright/test'
 import { zcHomepage } from '../fixtures/zcHomepage.page';
 
