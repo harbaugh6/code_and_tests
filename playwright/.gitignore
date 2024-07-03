@@ -5,3 +5,5 @@ node_modules/
 /playwright/.cache/
 .auth
 /playwright/.auth
+/tests/example.spec.ts
+package-lock.json

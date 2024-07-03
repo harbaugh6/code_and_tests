@@ -31,6 +31,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     headless: true
   },
+  timeout: 30000,
 
   /* Configure projects for major browsers */
   projects: [
