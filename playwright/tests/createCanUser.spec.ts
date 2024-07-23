@@ -1,14 +1,28 @@
 import {test, expect} from '@playwright/test';
 import { Homepage } from '../fixtures/homepage';
 import {faker} from '@faker-js/faker/locale/en_US';
+import UserCreator from '../fixtures/userCreator';
 
 let homepage;
 const baseURL = 'http://capalum.org';
-// Creating some test data here in the test itself as an example of what you can do.
-// Whether you -should- do it this way is up for debate.
+/**
+ * I've created two different ways to create and use data for this test.
+ * The first way is with constructors locally within the test using Faker.  The
+ * second method was using a fixture called User Creator that generates a user
+ * and can be imported.  The benefit of this is that you do the work once and 
+ * can reuse the module.  I know that different people do it differently though, so I've
+ * provided both as an example.
+ */
+// First example
 const firstName = faker.person.firstName();
 const lastName = (faker.person.lastName() + '+Test1234');
 const email = faker.internet.email({firstName, lastName})
+// Second example
+const user = new UserCreator();
+const newfirstName = user.firstName;
+const newLastName = user.lastName;
+const newEmail = user.email;
+const newPassword = user.password;
 
 
 test.describe('Can create a new account', () => {
