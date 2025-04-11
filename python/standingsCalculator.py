@@ -11,12 +11,12 @@ class StandingsCalculator(object):
     def __init__(self, name):
         self.name = name
 
-    def winningPercentage(self, wins, losses):
+    def winningPercentage(self, wins=0, losses=0):
         self.wins = wins
         self.losses = losses
         return (round((wins / (wins + losses)), 3))
     
-    def divisionWinningPercentage(self, divisionWins, divisionLosses):
+    def divisionWinningPercentage(self, divisionWins=0, divisionLosses=0):
         self.divisionWins = divisionWins
         self.divisionLosses = divisionLosses
         return (round((divisionWins / (divisionWins + divisionLosses)), 3))
