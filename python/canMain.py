@@ -15,12 +15,12 @@ def team_does_not_exist(team_id):
         abort(404, message="Team does not exist")
 
 # Teams related endpoints
-# Get all teams
 class Teams(Resource):
+    # Get all teams
     def get(self):
         return teams, 200
     
-# Create team
+    # Create team
     def put(self):
         data = request.get_json()
         if not data or "name" not in data or "mascot" not in data:
@@ -48,12 +48,14 @@ class GetTeamById(Resource):
         return teams[team_id], 200
 
 class GetTeamByName(Resource):
+    # Get team by team name
     def get(self, team_name):
         for team in teams.values():
             if team["team"].lower() == team_name.lower():
                 return team
         return {"message": "Team not found"}, 404
     
+    # Update team
     def put(self, team_name):
         data = request.get_json()
         team_name = data["name"]
