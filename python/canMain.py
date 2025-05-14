@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_restful import Api, Resource, abort
+from flask_restful import Api, Resource, abort, reqparse
 
 app = Flask(__name__)
 api = Api(app)
@@ -7,16 +7,26 @@ api = Api(app)
 # Example data
 teams = {1: {"team": "Washington", "mascot": "Huskies"},
          2: {"team": "Villanova", "mascot": "Wildcats"}}
+# teams = {}
 
 def team_does_not_exist(team_id):
     if team_id not in teams:
         abort(404, message="Team does not exist")
 
+team_args = reqparse.RequestParser()
+team_args.add_argument("team", type=str, help="Team name is required", required=True)
+
 # Teams related endpoints
 # Get all teams
-class GetTeams(Resource):
+class Teams(Resource):
     def get(self):
         return teams, 200
+    
+    def put(self, team_id):
+        args = team_args.parse_args()
+        teams[team_id] = args
+        return teams[team_id], 201
+
     
 # Get team by id
 class GetTeamById(Resource):
@@ -39,7 +49,7 @@ class GetTeamById(Resource):
 # Get standings for all teams
 # Get division standings
 
-api.add_resource(GetTeams, '/teams')
+api.add_resource(Teams, '/teams')
 api.add_resource(GetTeamById, '/teams/<int:team_id>')
 
 
