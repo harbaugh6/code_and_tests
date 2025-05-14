@@ -4,7 +4,8 @@ from flask_restful import Api, Resource, abort, reqparse
 app = Flask(__name__)
 api = Api(app)
 
-# Example data
+# Example data, this will eventually be removed but is
+# present for testing purposes right now
 teams = {1: {"team": "Washington", "mascot": "Huskies"},
          2: {"team": "Villanova", "mascot": "Wildcats"}}
 # teams = {}
@@ -13,20 +14,32 @@ def team_does_not_exist(team_id):
     if team_id not in teams:
         abort(404, message="Team does not exist")
 
-team_args = reqparse.RequestParser()
-team_args.add_argument("team", type=str, help="Team name is required", required=True)
-
 # Teams related endpoints
 # Get all teams
 class Teams(Resource):
     def get(self):
         return teams, 200
     
-    def put(self, team_id):
-        args = team_args.parse_args()
-        teams[team_id] = args
-        return teams[team_id], 201
-
+# Create team
+    def put(self):
+        data = request.get_json()
+        if not data or "name" not in data or "mascot" not in data:
+          return {"message": "Missing 'name' or 'mascot' in request body"}, 400
+        
+        team_name = data["name"]
+        
+        # Check if team already exists
+        for _, team_info in teams.items():
+            if team_info["team"].lower() == team_name.lower():
+                return {"message": "Team already exists"}, 409
+        
+        # If the team doesn't exist, create a new team
+        new_id = max(teams.keys(), default = 0) + 1
+        teams[new_id] = {
+            "team": team_name,
+            "mascot": data["mascot"]
+        }
+        return teams[new_id], 201
     
 # Get team by id
 class GetTeamById(Resource):
@@ -34,12 +47,23 @@ class GetTeamById(Resource):
         team_does_not_exist(team_id)
         return teams[team_id], 200
 
-# Create team  <--POST
+class GetTeamByName(Resource):
+    def get(self, team_name):
+        for team in teams.values():
+            if team["team"].lower() == team_name.lower():
+                return team
+        return {"message": "Team not found"}, 404
+    
+    def put(self, team_name):
+        data = request.get_json()
+        team_name = data["name"]
+        for team_id, team_info in teams.items():
+            if team_info["team"].lower() == team_name.lower():
+                teams[team_id]["mascot"] = data["mascot"]
+                return {"message": "Team updated", "team": [team_id]}, 200
 
-# Update team  <--PUT
-
+# TODO
 # Delete team  <--DELETE
-
 # Schedule related endpoints
 # Upload schedule <---biggest lift
 # Get entire schedule
@@ -51,6 +75,7 @@ class GetTeamById(Resource):
 
 api.add_resource(Teams, '/teams')
 api.add_resource(GetTeamById, '/teams/<int:team_id>')
+api.add_resource(GetTeamByName, '/teams/<string:team_name>')
 
 
 
