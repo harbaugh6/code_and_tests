@@ -18,7 +18,9 @@ schedule = [
         "date": "07/12/2025",
         "time": "9:00am",
         "location": "West Potomac Park",
-        "field": "Field 5"
+        "field": "Field 5",
+        "home_score": None,
+        "away_score": None
     },
     {
         "game_id": 2,
@@ -27,7 +29,9 @@ schedule = [
         "date": "07/12/2025",
         "time": "10:30am",
         "location": "West Potomac Park",
-        "field": "Field 5"
+        "field": "Field 5",
+        "home_score": None,
+        "away_score": None
     }
 ]
 
@@ -123,6 +127,26 @@ class GetGameById(Resource):
             if game["game_id"] == game_id:
                 return game
         return {"message": f"Game with ID {game_id} cannot be found"}, 404
+    
+    def put(self, game_id):
+        data = request.get_json()
+
+        for game in schedule:
+            if game["game_id"] == game_id:
+                if "home_score" in data:
+                    game["home_score"] = data["home_score"]
+                if "away_score" in data:
+                    game["away_score"] = data["away_score"]
+                if "date" in data:
+                    game["date"] = data["date"]
+                if "time" in data:
+                    game["time"] = data["time"]
+                if "location" in data:
+                    game["location"] = data["location"]
+                if "field" in data:
+                    game["field"] = data["field"]
+            return game
+
 
 
 # Get standings for all teams
