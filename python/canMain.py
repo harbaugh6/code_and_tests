@@ -10,6 +10,28 @@ teams = {1: {"team": "Washington", "mascot": "Huskies"},
          2: {"team": "Villanova", "mascot": "Wildcats"}}
 # teams = {}
 
+schedule = [
+    {
+        "game_id": 1,
+        "home_team": "Washington",
+        "away_team": "Villanova",
+        "date": "07/12/2025",
+        "time": "9:00am",
+        "location": "West Potomac Park",
+        "field": "Field 5"
+    },
+    {
+        "game_id": 2,
+        "home_team": "Washington",
+        "away_team": "Georgetown",
+        "date": "07/12/2025",
+        "time": "10:30am",
+        "location": "West Potomac Park",
+        "field": "Field 5"
+    }
+]
+
+
 def team_does_not_exist(team_id):
     if team_id not in teams:
         abort(404, message="Team does not exist")
@@ -67,17 +89,48 @@ class GetTeamByName(Resource):
 # TODO
 # Delete team  <--DELETE
 # Schedule related endpoints
-# Upload schedule <---biggest lift
+# Upload Schedule
 # Get entire schedule
+
+class Schedule(Resource):
+    # Endpoints belonging to this class will be the GET schedule,
+    # which will get the entire schedule for viewing.  PUT/POST
+    # will create the schedule and allow for mass updates.  DELETE
+    # will allow us to nuke the schedule if necessary
+    def get(self):
+        return schedule, 200
+
 # Get team schedule
-# Update schedule with score  <----put method
-# Update schedule with location <---put method
+class GetScheduleByTeam(Resource):
+    # This class will have the endpoint which retrieves all games by team.
+    def get(self, team_name):
+        team_games = [
+            game for game in schedule
+            if game["home_team"].lower() == team_name.lower()
+            or game["away_team"].lower() == team_name.lower()
+        ]
+
+        if team_games:
+            return team_games
+        else:
+            return {"message": f"No schedule found for {team_name}."}, 404
+
+# Get game
+# Update game; can be used to update score, date and location.
+# class Game(Resource):
+  #  def get(self, game_id):
+   #     data
+
+
 # Get standings for all teams
+
 # Get division standings
 
 api.add_resource(Teams, '/teams')
 api.add_resource(GetTeamById, '/teams/<int:team_id>')
 api.add_resource(GetTeamByName, '/teams/<string:team_name>')
+api.add_resource(Schedule, '/schedule')
+api.add_resource(GetScheduleByTeam, '/schedule/<string:team_name>')
 
 
 
