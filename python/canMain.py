@@ -117,9 +117,12 @@ class GetScheduleByTeam(Resource):
 
 # Get game
 # Update game; can be used to update score, date and location.
-# class Game(Resource):
-  #  def get(self, game_id):
-   #     data
+class GetGameById(Resource):
+    def get(self, game_id):
+        for game in schedule:
+            if game["game_id"] == game_id:
+                return game
+        return {"message": f"Game with ID {game_id} cannot be found"}, 404
 
 
 # Get standings for all teams
@@ -131,6 +134,7 @@ api.add_resource(GetTeamById, '/teams/<int:team_id>')
 api.add_resource(GetTeamByName, '/teams/<string:team_name>')
 api.add_resource(Schedule, '/schedule')
 api.add_resource(GetScheduleByTeam, '/schedule/<string:team_name>')
+api.add_resource(GetGameById, '/schedule/<int:game_id>')
 
 
 
