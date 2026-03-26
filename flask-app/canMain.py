@@ -36,7 +36,7 @@ schedule = [
 ]
 
 
-def team_does_not_exist(team_id):
+def require_team(team_id):
     if team_id not in teams:
         abort(404, message="Team does not exist")
 
@@ -70,7 +70,7 @@ class Teams(Resource):
 # Get team by id
 class GetTeamById(Resource):
     def get(self, team_id):
-        team_does_not_exist(team_id)
+        require_team(team_id)
         return teams[team_id], 200
 
 class GetTeamByName(Resource):
@@ -90,8 +90,14 @@ class GetTeamByName(Resource):
                 teams[team_id]["mascot"] = data["mascot"]
                 return {"message": "Team updated", "team": [team_id]}, 200
 
-# TODO
 # Delete team  <--DELETE
+class DeleteTeam(Resource):
+    def delete(self, team_id):
+        require_team(team_id)
+        del teams[team_id]
+        return '', 204
+        
+# TODO
 # Schedule related endpoints
 # Upload Schedule
 # Get entire schedule
@@ -159,6 +165,7 @@ api.add_resource(GetTeamByName, '/teams/<string:team_name>')
 api.add_resource(Schedule, '/schedule')
 api.add_resource(GetScheduleByTeam, '/schedule/<string:team_name>')
 api.add_resource(GetGameById, '/schedule/<int:game_id>')
+api.add_resource(DeleteTeam, '/teams/<int:team_id>')
 
 
 
