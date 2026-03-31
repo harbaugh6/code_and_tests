@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_restful import Api, Resource, abort, reqparse
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_
+from pandas import Timestamp
 import pandas as pd
 
 app = Flask(__name__)
@@ -66,6 +67,46 @@ def require_team(team_id):
     if team_id not in teams:
         abort(404, message="Team does not exist")
 
+# Used for uploading schedules.  Takes the team name and finds the corresponding team ID.  Team type is 'home' or 'away'.
+def resolve_team(data, team_type):
+    team_id_key = f"{team_type}_team_id"
+    team_name_key = f"{team_type}_team_name"
+
+    # ALWAYS define these at the top
+    team_id_val = data.get(team_id_key)
+    team_name_val = data.get(team_name_key)
+
+    # Normalize NaN → None
+    if pd.isna(team_id_val):
+        team_id_val = None
+    if pd.isna(team_name_val):
+        team_name_val = None
+
+    print(f"DEBUG ({team_type}): id={team_id_val}, name={team_name_val}")
+
+    # Try ID
+    if team_id_val not in [None, ""]:
+        try:
+            team_id = int(team_id_val)
+            team = Team.query.get(team_id)
+            if team:
+                return team.id, None
+        except (ValueError, TypeError):
+            pass
+
+    # Try name
+    if team_name_val not in [None, ""]:
+        team = Team.query.filter(
+            Team.name.ilike(str(team_name_val).strip())
+        ).first()
+
+        if team:
+            return team.id, None
+
+        return None, f"{team_type}_team_name not found"
+
+    return None, f"Missing {team_type}_team_id or {team_type}_team_name"
+
 # Validates game data to fit the db model.
 def validate_game_data(data):
     REQUIRED_FIELDS = ["home_team_id", "away_team_id", "date", "time", "location", "field"]
@@ -97,9 +138,17 @@ def validate_game_data(data):
 # It then constructs a new game dictionary with the provided data and initializes the home_score and away_score to None. 
 # The new game object is returned for further processing, such as adding it to the schedule or returning it in a response.
 def build_game_from_data(data):
+    home_team_id, error = resolve_team(data, "home")
+    if error:
+        raise ValueError(error)
+
+    away_team_id, error = resolve_team(data, "away")
+    if error:
+        raise ValueError(error)
+
     return Game(
-        home_team_id=data["home_team_id"],
-        away_team_id=data["away_team_id"],
+        home_team_id=home_team_id,
+        away_team_id=away_team_id,
         date=data["date"],
         time=data["time"],
         location=data["location"],
@@ -119,22 +168,47 @@ class Teams(Resource):
     # Create team
     def post(self):
         data = request.get_json()
-
-        if not data or "name" not in data or "mascot" not in data:
-          return {"message": "Missing 'name' or 'mascot' in request body"}, 400
+        if not data:
+            return {"message": "No input provided"}, 400
         
-        # Check if team exists
-        existing_team = Team.query.filter_by(name=data["name"]).first()
-        if existing_team:
-            return {"message": "Team with this name already exists"}, 409
+        created_teams = []
+
+        try:
+            # Scnenario 1: Multi-team creation
+            if isinstance(data, list):
+                for item in data:
+                    if "name" not in item or "mascot" not in item:
+                        return {"message": "Missing 'name' or 'mascot' in one of the items"}, 400
+
+                    existing_team = Team.query.filter_by(name=item["name"]).first()
+                    if existing_team:
+                        return {"message": f"Team '{item['name']}' already exists"}, 409
+                    
+                    team = Team(name=item["name"], mascot=item["mascot"])
+                    db.session.add(team)
+                    created_teams.append(team)
+            
+            # Scenario 2: Single team creation
+            elif isinstance(data, dict):
+                if "name" not in data or "mascot" not in data:
+                    return {"message": "Missing 'name' or 'mascot'"}, 400
+                
+                existing_team = Team.query.filter_by(name=data["name"]).first()
+                if existing_team:
+                    return {"message": f"Team '{data['name']}' already exists"}, 409
+                team = Team(name=data["name"], mascot=data["mascot"])
+                db.session.add(team)
+                created_teams.append(team)
+            
+            else:
+                return {"message": "Invalid format."}, 400
+
+            db.session.commit()
+            return [team.to_dict() for team in created_teams], 201
         
-        #Create new team
-        new_team = Team(name=data["name"], mascot=data["mascot"])
-
-        db.session.add(new_team)
-        db.session.commit()
-
-        return new_team.to_dict(), 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": str(e)}, 500
         
     
 # Get team by id
@@ -166,10 +240,6 @@ class DeleteTeam(Resource):
         require_team(team_id)
         del teams[team_id]
         return '', 204
-        
-# TODO
-# Schedule related endpoints
-# Upload Schedule
 
 # Endpoints belonging to this class will be the GET schedule,
 # which will get the entire schedule for viewing.  PUT/POST
@@ -182,9 +252,25 @@ class Schedule(Resource):
         return [game.to_dict() for game in games], 200
     
     def post(self):
-        # Case 1: JSON
+        # Scenario 1: JSON
         if request.is_json:
             data = request.get_json()
+
+            # Resolve teams
+            home_id, error = resolve_team(data, "home")
+            if error:
+                return {"message": error}, 400
+            
+            away_id, error = resolve_team(data, "away")
+            if error:
+                return {"message": error}, 400
+            
+            # Disallow home and away being the same team
+            if home_id == away_id:
+                return {"message": "Home and away teams cannot be the same"}, 400
+
+            data["home_team_id"] = home_id
+            data["away_team_id"] = away_id
 
             is_valid, error = validate_game_data(data or {})
             if not is_valid:
@@ -195,7 +281,7 @@ class Schedule(Resource):
             db.session.commit()
             return game.to_dict(), 201
         
-        # Case 2: File upload
+        # Scenario 2: File upload
         if "file" not in request.files:
             return {"message": "No file provided"}, 400
         
@@ -217,12 +303,38 @@ class Schedule(Resource):
         for index, row in df.iterrows():
             data = row.to_dict()
 
+            home_id, error = resolve_team(data, "home")
+            if error:
+                errors.append({"row": index, "error": error})
+                continue
+
+            away_id, error = resolve_team(data, "away")
+            if error:
+                errors.append({"row": index, "error": error})
+                continue
+
+            if home_id == away_id:
+                errors.append({"row": index, "error": "Home and away teams cannot be the same"})
+                continue
+
+            data["home_team_id"] = home_id
+            data["away_team_id"] = away_id
+            
+            if isinstance(data.get("date"), Timestamp):
+                data["date"] = data["date"].strftime("%Y-%m-%d")
+            
+            if isinstance(data.get("time"), Timestamp):
+                data["time"] = data["time"].strftime("%H:%M")
+
             is_valid, error = validate_game_data(data)
             if not is_valid:
                 errors.append({"row": index, "error": error})
                 continue
 
-            game = build_game_from_data(data)
+            try:
+                game = build_game_from_data(data)
+            except ValueError as e:
+                return {"messaage": str(e)}, 400
             db.session.add(game)
             created_games.append(game)
         
@@ -234,7 +346,6 @@ class Schedule(Resource):
         }, 201
 
 # Get team schedule
-
 class GetScheduleByTeam(Resource):
     def get(self, team_name):
         team_name = team_name.lower()
@@ -290,10 +401,8 @@ class GetGameById(Resource):
 
         return game.to_dict(), 200
 
-
-
+# TODO
 # Get standings for all teams
-
 # Get division standings
 
 api.add_resource(Teams, '/teams')
